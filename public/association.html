@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Data Source Form</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    form {
+      max-width: 90%;
+      margin: 0 auto;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    #checkBoxDiv > label {
+        display: inline-block;
+    }
+
+    input[type="text"],
+    select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 16px;
+      margin-bottom: 16px;
+    }
+
+    input[type="checkbox"] {
+      margin-top: 8px; 
+    }
+
+    input[type="button"] {
+      background-color: #4CAF50;
+      color: #fff;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    input[type="button"]:hover {
+      background-color: #45a049;
+    }
+
+    #sqlcode {
+      overflow: auto;
+      background-color: rgba(128, 128, 128, 0.381);
+      font-size: larger;
+      padding: 2%;
+      font-family: monospace;
+      border-radius: 5px;
+    }
+  </style>
+  <script src="form.js"></script> <!-- Assuming the JavaScript code is in a separate file named form.js -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/themes/prism.min.css" />
+</head>
+<body>
+  <h1>Object Info</h1>
+
+  <form id="dataSourceForm">
+    <label for="dataSourceType">Data Source Type:</label>
+    <input type="text" id="dataSourceType" name="dataSourceType" value="1" required>
+
+    <label for="name">Name:</label>
+    <input type="text" id="name" name="name"  required>
+
+    <div id="checkBoxDiv">
+        <label for="isGenerated">Is Generated:</label>
+        <input type="checkbox" id="isGeneratedbox" name="isGenerated" checked>    
+    </div>
+
+    <label for="schema">Schema:</label>
+    <select class="mySelect" id="schema">
+        <option value="dbo">dbo</option>
+        <option value="udp">udp</option>
+        <option value="other">other</option>
+      </select>
+      
+      <input type="text" id="otherInputSchema" style="display: none;" />
+
+    <label for="namespaceStructure">Namespace Structure:</label>
+    <input type="text" id="namespaceStructure" name="namespaceStructure" value="Univerus.Unity.Starter.Project" required>
+
+    <label for="Properties">Properties:</label>
+    <input type="text" id="Properties" name="Properties" value='{"IsConfig":false}' required> 
+
+    <label for="sanitizedName">Sanitized Name:</label>
+    <input type="text" id="sanitizedName" name="sanitizedName" required>     
+
+      <script>
+        document.getElementById('schema').addEventListener('change', function() {
+          var selectElement = document.getElementById('schema');
+          var otherInput = document.getElementById('otherInputSchema');
+      
+          if (selectElement.value === 'other') {
+            otherInput.style.display = 'block';
+          } else {
+            otherInput.style.display = 'none';
+          }
+        });
+      </script>
+
+    <script>
+        function copyName() {
+        var nameInput = document.getElementById('name');
+        var sanitizedNameInput = document.getElementById('sanitizedName');
+    
+        sanitizedNameInput.value = nameInput.value;
+        }
+        var nameInput = document.getElementById('name');
+        nameInput.addEventListener('input', copyName);
+    </script>
+
+
+
+    <input type="button" onclick="submitForm" id="submit" value="Submit"></input>
+    
+    <div id="resultDiv" style="display: none;">
+      <h2 id="result">Result</h2>
+      
+      <pre><p id="sqlcode"></p></pre>
+      <!-- The button used to copy the text -->
+      <input type="button" onclick="copyTexts()" value="Copy text" id="copyButton"></input>
+    </div>
+    
+    <script>
+        var submit = document.getElementById('submit');
+        submit.addEventListener('click', submitForm)
+
+
+        function submitForm() {
+            let dataSourceTypeInput = document.getElementById('dataSourceType').value;
+            let nameInput = document.getElementById('name').value;
+            let isGeneratedInput = document.getElementById('isGeneratedbox').checked;
+            let schemaInput = document.getElementById('schema').value;
+            if (schemaInput == 'other') {
+              schemaInput = document.getElementById('otherInputSchema').value
+            }
+            let namespaceStructureInput = document.getElementById('namespaceStructure').value;
+            let sanitizedNameInput = document.getElementById('sanitizedName').value;
+            let properties = document.getElementById('Properties').value;
+            
+            let formData = {
+              DataSourceType: dataSourceTypeInput,
+              ObjectName: nameInput,
+              IsGenerated: isGeneratedInput ? 1 : 0,
+              Schema: schemaInput,
+              Properties:properties,
+              NameSpaceStructure: namespaceStructureInput,
+              SanitizedName: sanitizedNameInput
+            };
+            console.log(formData)
+    
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', 'http://localhost:3000/objectInfo', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onreadystatechange = function() {
+              if (xhr.readyState === XMLHttpRequest.DONE) {
+                if (xhr.status === 200) {
+                  console.log('Data sent successfully');
+                  document.getElementById("resultDiv").style.display = 'block'
+                  document.getElementById("sqlcode").innerText = xhr.responseText
+
+                } else {
+                  console.log('Error:', xhr.status);
+                }
+              }
+            };
+
+            document.getElementById("copyButton").value = "Copy to Clipboard"
+            xhr.send(JSON.stringify(formData));
+        }
+
+        function copyTexts() {
+        // Get the text field
+        var copyText = document.getElementById("sqlcode");
+
+        // Copy the text inside the text field
+        navigator.clipboard.writeText(copyText.innerText);
+
+        document.getElementById("copyButton").value = "Copied to clipboard"
+      }
+        </script>
+
+  </form>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-sql.min.js"></script>
+</body>
+</html>
